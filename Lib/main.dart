@@ -41,7 +41,7 @@ class _AnaEkranState extends State<AnaEkran> {
   final TextEditingController _geminiKeyCtrl = TextEditingController();
   final TextEditingController _footballKeyCtrl = TextEditingController();
 
-  // 6 Büyük Lig ve API ID'leri + Takım Güç Veritabanı (evAt, evYe, depAt, depYe)
+  // 6 Büyük Lig ve API ID'leri + Takım Güç Veritabanı ([evAt, evYe, depAt, depYe])
   final Map<String, Map<String, dynamic>> _ligVeritabani = {
     '🇹🇷 Türkiye - Süper Lig': {
       'id': 203,
@@ -167,7 +167,8 @@ class _AnaEkranState extends State<AnaEkran> {
   }
 
   void _takimlariSifirla() {
-    final takimListesi = (_ligVeritabani[_seciliLig]!['takimlar'] as Map<String, dynamic>).keys.toList();
+    final Map<String, dynamic> takimlarMap = _ligVeritabani[_seciliLig]!['takimlar'] as Map<String, dynamic>;
+    final takimListesi = takimlarMap.keys.toList();
     _evTakim = takimListesi[0];
     _depTakim = takimListesi.length > 1 ? takimListesi[1] : takimListesi[0];
   }
@@ -186,7 +187,6 @@ class _AnaEkranState extends State<AnaEkran> {
     await prefs.setString('football_key', _footballKeyCtrl.text.trim());
   }
 
-  // API-Football üzerinden seçili ligin yaklaşan maçlarını otomatik çekme
   Future<void> _canliBultenCek() async {
     final fKey = _footballKeyCtrl.text.trim();
     if (fKey.isEmpty) {
@@ -231,15 +231,18 @@ class _AnaEkranState extends State<AnaEkran> {
     final dep = ozelDep ?? _depTakim;
 
     final ligBilgi = _ligVeritabani[_seciliLig]!;
-    final double ligOrt = ligBilgi['ligOrt'];
-    final takimlar = ligBilgi['takimlar'] as Map<String, dynamic>;
+    final double ligOrt = (ligBilgi['ligOrt'] as num).toDouble();
+    final Map<String, dynamic> takimlar = ligBilgi['takimlar'] as Map<String, dynamic>;
 
-    // Takım verilerini veritabanından otomatik al (Yoksa lig ortalaması ata)
-    final List<double> evVeri = takimlar[ev] != null
-        ? List<double>.from(takimlar[ev])
+    // Güvenli tip dönüşümü (Hata veren kısım düzeltildi)
+    final dynamic hamEvVeri = takimlar[ev];
+    final List<double> evVeri = hamEvVeri != null
+        ? (hamEvVeri as List<dynamic>).map((e) => (e as num).toDouble()).toList()
         : [1.50, 1.20, 1.25, 1.35];
-    final List<double> depVeri = takimlar[dep] != null
-        ? List<double>.from(takimlar[dep])
+
+    final dynamic hamDepVeri = takimlar[dep];
+    final List<double> depVeri = hamDepVeri != null
+        ? (hamDepVeri as List<dynamic>).map((e) => (e as num).toDouble()).toList()
         : [1.45, 1.25, 1.20, 1.40];
 
     final double evAt = evVeri[0];
@@ -399,7 +402,8 @@ başlıklarıyla Türkçe, net ve profesyonel bir maç önü analizi yaz.
 
   @override
   Widget build(BuildContext context) {
-    final takimListesi = (_ligVeritabani[_seciliLig]!['takimlar'] as Map<String, dynamic>).keys.toList();
+    final Map<String, dynamic> takimlarMap = _ligVeritabani[_seciliLig]!['takimlar'] as Map<String, dynamic>;
+    final takimListesi = takimlarMap.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -417,7 +421,6 @@ başlıklarıyla Türkçe, net ve profesyonel bir maç önü analizi yaz.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Lig Seçim Kartı
             Card(
               color: const Color(0xFF1E293B),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -504,8 +507,6 @@ başlıklarıyla Türkçe, net ve profesyonel bir maç önü analizi yaz.
                 ),
               ),
             ),
-
-            // Canlı Bülten Listesi (Varsa)
             if (_canliMaclar.isNotEmpty) ...[
               const SizedBox(height: 12),
               Card(
@@ -530,8 +531,6 @@ başlıklarıyla Türkçe, net ve profesyonel bir maç önü analizi yaz.
                 ),
               ),
             ],
-
-            // Sonuç Ekranı
             if (_sonuclar != null) ...[
               const SizedBox(height: 16),
               Card(
