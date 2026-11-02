@@ -23,16 +23,18 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Android Dosyalarini Tamamla ve Paketleri Yukle
+      - name: Projeyi Hazirla ve APK Derle
         run: |
-          flutter create . --project-name futbol_analiz_ai --platforms android
-          flutter pub get
-
-      - name: APK Derle
-        run: flutter build apk --release
+          flutter create app_build --project-name futbol_analiz_ai --platforms android
+          if [ -f "Lib/main.dart" ]; then cp Lib/main.dart app_build/lib/main.dart; fi
+          if [ -f "Lib/Main.dart" ]; then cp Lib/Main.dart app_build/lib/main.dart; fi
+          if [ -f "lib/main.dart" ]; then cp lib/main.dart app_build/lib/main.dart; fi
+          cd app_build
+          flutter pub add http shared_preferences
+          flutter build apk --release
 
       - name: APK Dosyasini Hazirla
         uses: actions/upload-artifact@v4
         with:
           name: Futbol-Analiz-AI-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: app_build/build/app/outputs/flutter-apk/app-release.apk
